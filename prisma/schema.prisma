@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model practice_sessions {
+  id               Int       @id @default(autoincrement())
+  song_id          Int
+  duration_minutes Int
+  current_bpm      Int?
+  notes            String?   @db.Text
+  practiced_at     DateTime? @default(now()) @db.Timestamp(0)
+  songs            songs     @relation(fields: [song_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "practice_sessions_ibfk_1")
+
+  @@index([song_id], map: "song_id")
+}
+
+model songs {
+  id                Int                 @id @default(autoincrement())
+  user_id           Int
+  title             String              @db.VarChar(100)
+  artist            String?             @db.VarChar(100)
+  target_bpm        Int?                @default(0)
+  youtube_url       String?             @db.VarChar(255)
+  status            songs_status?       @default(PRACTICING)
+  created_at        DateTime?           @default(now()) @db.Timestamp(0)
+  practice_sessions practice_sessions[]
+  users             users               @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "songs_ibfk_1")
+
+  @@index([user_id], map: "user_id")
+}
+
+model users {
+  id            Int       @id @default(autoincrement())
+  username      String    @db.VarChar(50)
+  email         String    @unique(map: "email") @db.VarChar(100)
+  password_hash String    @db.VarChar(255)
+  created_at    DateTime? @default(now()) @db.Timestamp(0)
+  songs         songs[]
+}
+
+enum songs_status {
+  WANT_TO_PLAY
+  PRACTICING
+  MASTERED
+}
