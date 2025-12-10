@@ -94,6 +94,24 @@ app.delete('/songs/:id', async (req, res) => {
     }
 });
 
+// 更新歌曲狀態 (PATCH /songs/:id/status)
+app.patch('/songs/:id/status', async (req, res) => {
+    const songId = parseInt(req.params.id, 10);
+    const { status } = req.body;
+
+    try {
+        const updatedSong = await prisma.songs.update({
+            where: { id: songId },
+            data: { status },
+        });
+
+        res.json(updatedSong);
+    } catch (error) {
+        console.error("更新失敗:", error);
+        res.status(500).json({ error: '無法更新歌曲狀態' });
+    }
+});
+
 // --- 啟動伺服器 ---
 app.listen(PORT, () => {
     console.log(`🚀 Server ready at: http://localhost:${PORT}`);

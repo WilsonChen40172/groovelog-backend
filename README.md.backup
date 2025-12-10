@@ -1,0 +1,73 @@
+# 🎸 GrooveLog Backend API
+
+這是 **GrooveLog 練琴日記** 的後端服務，提供 RESTful API 來管理練習曲目與進度。
+本專案使用 **Node.js (Express)**、**TypeScript** 與 **Prisma ORM** 開發，資料庫採用 **MySQL**。
+
+---
+
+## 🛠 技術堆疊 (Tech Stack)
+
+- **Runtime:** Node.js
+- **Framework:** Express
+- **Language:** TypeScript
+- **Database:** MySQL 8.0
+- **ORM:** Prisma (v5.22.0)
+- **Dev Tool:** Docker (用於本地資料庫), ts-node-dev (熱重載)
+
+---
+
+## 🚀 快速開始 (Quick Start)
+
+### 1. 環境準備 (Prerequisites)
+
+確保你的電腦已安裝：
+
+- [Node.js](https://nodejs.org/) (建議 v18 以上)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (用於啟動資料庫)
+
+### 2. 啟動資料庫 (Database Setup)
+
+我們使用 Docker 來快速啟動一個 MySQL 伺服器，以免污染本機環境。
+
+打開終端機 (Terminal)，執行以下指令：
+
+```bash
+# 1. 下載並啟動 MySQL 8.0 容器
+# 帳號: root, 密碼: 自己設定的密碼, Port: 3306
+docker run --name groovelog-db -e MYSQL_ROOT_PASSWORD=自己設定的密碼 -p 3306:3306 -d mysql:8.0
+
+# 2. 確認容器是否正在執行
+docker ps
+```
+
+### 3. 設定環境變數 (.env)
+
+在專案根目錄建立一個 .env 檔案，並貼上以下內容：
+
+# 資料庫連線字串
+
+# 格式: mysql://使用者:密碼@主機:Port/資料庫名稱
+
+# 注意：請確認資料庫名稱是否正確 (這裡是 GrooveLog_251208)
+
+DATABASE_URL="mysql://root:自己設定的密碼@localhost:3306/GrooveLog_251208"
+
+### 安裝依賴與同步資料庫 (Install & Setup)
+
+# 1. 安裝 npm 套件
+
+npm install
+
+# 2. 讓 Prisma 根據 schema.prisma 自動在資料庫建立 Table
+
+npx prisma db push
+
+# 3. 產生 Prisma Client 型別檔案 (讓 TypeScript 認識資料庫結構)
+
+npx prisma generate
+
+### 5. 啟動伺服器 (Run Server)
+
+# 開發模式 (存檔會自動重啟)
+
+npm run dev
