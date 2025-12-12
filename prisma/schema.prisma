@@ -27,11 +27,24 @@ model songs {
   target_bpm        Int?                @default(0)
   youtube_url       String?             @db.VarChar(255)
   status            songs_status?       @default(PRACTICING)
+  instruments       song_instruments[]
   created_at        DateTime?           @default(now()) @db.Timestamp(0)
   practice_sessions practice_sessions[]
   users             users               @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "songs_ibfk_1")
 
   @@index([user_id], map: "user_id")
+}
+
+model song_instruments {
+  id         Int    @id @default(autoincrement())
+  song_id    Int
+  instrument String @db.VarChar(50) // 樂器名稱 (如: Guitar, Bass)
+  progress   Int    @default(0)     // 進度百分比 (0-100)
+  
+  // 關聯回 songs
+  songs      songs  @relation(fields: [song_id], references: [id], onDelete: Cascade)
+
+  @@index([song_id], map: "song_id")
 }
 
 model users {
@@ -47,4 +60,5 @@ enum songs_status {
   WANT_TO_PLAY
   PRACTICING
   MASTERED
+  ARCHIVED
 }
