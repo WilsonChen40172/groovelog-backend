@@ -38,13 +38,17 @@ model songs {
 model song_instruments {
   id         Int    @id @default(autoincrement())
   song_id    Int
-  instrument String @db.VarChar(50) // 樂器名稱 (如: Guitar, Bass)
+  // instrument String @db.VarChar(50) // 樂器名稱 (如: Guitar, Bass)
+  defined_instrument_id Int
   progress   Int    @default(0)     // 進度百分比 (0-100)
   
   // 關聯回 songs
   songs      songs  @relation(fields: [song_id], references: [id], onDelete: Cascade)
 
+  defined_instrument    defined_instruments @relation(fields: [defined_instrument_id], references: [id])
+
   @@index([song_id], map: "song_id")
+  @@index([defined_instrument_id], map: "defined_instrument_id") // 加個索引查比較快
 }
 
 model users {
@@ -54,6 +58,14 @@ model users {
   password_hash String    @db.VarChar(255)
   created_at    DateTime? @default(now()) @db.Timestamp(0)
   songs         songs[]
+}
+
+model defined_instruments {
+  id               Int                @id @default(autoincrement())
+  name             String             @unique @db.VarChar(50) // 必須唯一，不能有兩個 Guitar
+  
+  // 關聯回 song_instruments
+  song_instruments song_instruments[]
 }
 
 enum songs_status {

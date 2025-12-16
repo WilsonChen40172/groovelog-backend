@@ -15,66 +15,51 @@ app.use(express.json()); // 讓後端看得懂 JSON 格式的 Request Body
 
 // --- API 路由區 ---
 
-// 測試用：首頁
+// 首頁Testing
 app.get('/', (req, res) => {
     res.send('🎸 GrooveLog API is running! Let\'s Rock!');
 });
 
-// API 1: 取得所有歌曲 (GET /songs)
+// 取得所有歌曲 (GET /songs)
 app.get('/songs', async (req, res) => {
-    try {
-        const songs = await prisma.songs.findMany({
-            where: {
-                status: {
-                    not: 'ARCHIVED' // 👈 關鍵：只要狀態「不是」封存的，都拿出來
+    const songs = await prisma.songs.findMany({
+        where: { status: { not: 'ARCHIVED' } },
+        orderBy: { created_at: 'desc' },
+        include: {
+            instruments: {
+                include: {
+                    defined_instrument: true // 這樣才能拿到樂器名字 "Guitar"
                 }
-            },
-            orderBy: {
-                created_at: 'desc' // (順便加的) 讓新歌排在最上面，體驗比較好
-            },
-            // 👇 關鍵：告訴 Prisma 把這首歌底下的樂器也一起撈出來
-            include: {
-                instruments: true
             }
-        });
-        res.json(songs);
-    } catch (error) {
-        res.status(500).json({ error: '無法讀取歌曲列表' });
-    }
+        }
+    });
+    res.json(songs);
 });
 
-// API 2: 新增一位使用者 (POST /users)
-// 為了測試，我們先寫一個簡單的建立使用者 API
+// 建立使用者 (POST /users)
 app.post('/users', async (req, res) => {
     try {
-        // 前端傳來的 body 會多一個 instruments 陣列，例如 ["Guitar", "Bass"]
-        const { title, artist, youtube_url, instruments } = req.body;
-
-        const newSong = await prisma.songs.create({
+        const { username, email, password } = req.body;
+        const newUser = await prisma.users.create({
             data: {
-                title,
-                artist,
-                youtube_url,
-                user_id: 1,
-                status: 'PRACTICING',
-                // 👇 這裡用了 Prisma 強大的 Nested Write (巢狀寫入)
-                // 如果前端有傳 instruments 陣列，就自動建立對應的資料
-                instruments: {
-                    create: instruments ? instruments.map((inst: string) => ({
-                        instrument: inst,
-                        progress: 0 // 預設進度 0%
-                    })) : []
-                }
+                username,
+                email,
+                password_hash: password, // 實務上要加密,這裡先簡化
             },
-            include: { instruments: true } // 回傳時也包含樂器資料
         });
-
-        res.json(newSong);
+        res.json(newUser);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: '建立失敗' });
+        res.status(400).json({ error: '建立使用者失敗' });
     }
 });
+
+// API: 取得樂器總表 (給前端選單用)
+app.get('/instruments', async (req, res) => {
+    const list = await prisma.defined_instruments.findMany();
+    res.json(list);
+});
+
 
 // 3. 新增 PATCH: 更新某個樂器的進度
 // 前端呼叫範例: PATCH /instruments/5  Body: { progress: 70 }
@@ -94,42 +79,44 @@ app.patch('/instruments/:id', async (req, res) => {
     }
 });
 
-// src/index.ts
-
-// API: 新增一首歌 (POST /songs)
+// 新增一首歌 (POST /songs)
 app.post('/songs', async (req, res) => {
     try {
-        const { title, artist, youtube_url, instruments } = req.body;
+        // 前端改傳 instrumentIds: [1, 2, 4] 這樣的 ID 陣列
+        const { title, artist, youtube_url, instrumentIds } = req.body;
 
-        // 使用 Prisma 寫入資料庫
         const newSong = await prisma.songs.create({
             data: {
                 title,
                 artist,
                 youtube_url,
-                user_id: 1, // 暫時先寫死，假裝是剛剛建立的那個 DemoUser (ID=1)
-                status: 'PRACTICING', // 預設狀態
+                user_id: 1,
+                status: 'PRACTICING',
                 instruments: {
-                    // 如果前端有傳 instruments 陣列，就用 map 轉成 Prisma 看得懂的物件格式
-                    // 如果沒傳 (undefined)，就給空陣列
-                    create: instruments
-                        ? instruments.map((inst: string) => ({
-                            instrument: inst, // e.g. "Guitar"
-                            progress: 0       // 預設進度 0
+                    create: instrumentIds
+                        ? instrumentIds.map((instId: number) => ({
+                            progress: 0,
+                            // 連接已存在的樂器 ID
+                            defined_instrument: {
+                                connect: { id: instId }
+                            }
                         }))
                         : []
                 }
             },
+            // 記得 include 的結構也變了，要多包一層才能拿到 name
             include: {
-                instruments: true
+                instruments: {
+                    include: {
+                        defined_instrument: true
+                    }
+                }
             }
         });
-
-        console.log("新歌已建立:", newSong);
         res.json(newSong);
     } catch (error) {
-        console.error("建立失敗:", error);
-        res.status(500).json({ error: '無法建立歌曲' });
+        console.error(error);
+        res.status(500).json({ error: '建立失敗' });
     }
 });
 
