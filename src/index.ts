@@ -61,6 +61,32 @@ app.get('/instruments', async (req, res) => {
 });
 
 
+// 取得單一歌曲詳細資料
+app.get('/songs/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const song = await prisma.songs.findUnique({
+            where: { id: Number(id) },
+            include: {
+                instruments: {
+                    include: {
+                        defined_instrument: true // 記得把樂器名字也帶出來
+                    }
+                }
+            }
+        });
+
+        if (!song) {
+            return res.status(404).json({ error: '找不到這首歌' });
+        }
+
+        res.json(song);
+    } catch (error) {
+        res.status(500).json({ error: '讀取失敗' });
+    }
+});
+
+
 // 3. 新增 PATCH: 更新某個樂器的進度
 // 前端呼叫範例: PATCH /instruments/5  Body: { progress: 70 }
 app.patch('/instruments/:id', async (req, res) => {
